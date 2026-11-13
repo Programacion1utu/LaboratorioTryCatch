@@ -1,0 +1,760 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Laboratorio de try/catch</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Mismo banco de trabajo que el Laboratorio de Funciones, con acento rojizo para "excepciones" */
+:root{
+  --bg:#f3f0ee; --surface:#ffffff; --ink:#1f1a17; --muted:#665d57; --line:#ddd5cf;
+  --accent:#a8432a; --accent-soft:#f6e1da; --accent-ink:#ffffff;
+  --warm:#b8680f; --warm-soft:#fbecd8;
+  --ok:#1d7a3b; --ok-soft:#dcf1e2; --bad:#b0281f; --bad-soft:#f9e0dd;
+  --code-bg:#fcfbfa; --code-gutter:#968b84;
+  --syn-kw:#7f0055; --syn-type:#7f0055; --syn-str:#2a00ff; --syn-num:#125ea8; --syn-com:#3f7f5f; --syn-fn:#0d6b67; --syn-ex:#a8432a;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", Consolas, "Courier New", monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#191513; --surface:#221d1a; --ink:#ede6e1; --muted:#a89d96; --line:#3a322d;
+  --accent:#f0896d; --accent-soft:#45251c; --accent-ink:#1d0f0a;
+  --warm:#f0a94a; --warm-soft:#3a2b17;
+  --ok:#6fd38f; --ok-soft:#173523; --bad:#ff8a80; --bad-soft:#3d1c1a;
+  --code-bg:#171310; --code-gutter:#6f655e;
+  --syn-kw:#e48bbd; --syn-type:#e48bbd; --syn-str:#a9bcff; --syn-num:#7cc0ff; --syn-com:#7fae8f; --syn-fn:#4fc2b9; --syn-ex:#f0896d;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#191513; --surface:#221d1a; --ink:#ede6e1; --muted:#a89d96; --line:#3a322d;
+  --accent:#f0896d; --accent-soft:#45251c; --accent-ink:#1d0f0a;
+  --warm:#f0a94a; --warm-soft:#3a2b17;
+  --ok:#6fd38f; --ok-soft:#173523; --bad:#ff8a80; --bad-soft:#3d1c1a;
+  --code-bg:#171310; --code-gutter:#6f655e;
+  --syn-kw:#e48bbd; --syn-type:#e48bbd; --syn-str:#a9bcff; --syn-num:#7cc0ff; --syn-com:#7fae8f; --syn-fn:#4fc2b9; --syn-ex:#f0896d;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
+.brand{display:flex;flex-direction:column;gap:2px;min-width:0}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,4.4vw,42px);line-height:1.05;margin:0;text-wrap:balance}
+h1 code{font-family:var(--f-mono);font-weight:600;color:var(--accent);font-size:.62em;vertical-align:.25em;margin-left:.15em}
+.total{font-family:var(--f-mono);font-size:14px;color:var(--muted);display:flex;align-items:center;gap:10px}
+.bar{width:160px;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .4s}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tab{font:inherit;font-weight:700;font-size:15px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);
+  padding:8px 14px;border-radius:99px;cursor:pointer;display:flex;align-items:center;gap:8px}
+.tab .n{font-family:var(--f-mono);font-weight:400;font-size:12px;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tab[aria-selected="true"] .n{color:var(--accent-ink);opacity:.85}
+.tab:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--warm);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;min-width:0}
+.ex-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.ex-num{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+h2{font-family:var(--f-display);font-weight:600;font-size:22px;margin:0;text-wrap:balance}
+.consigna{color:var(--muted);margin:4px 0 14px;max-width:65ch}
+.dots{display:flex;flex-wrap:wrap;gap:6px}
+.dot{width:26px;height:26px;border-radius:6px;border:1.5px solid var(--line);background:var(--surface);color:var(--muted);
+  font:600 12px var(--f-mono);cursor:pointer;display:grid;place-items:center;padding:0}
+.dot.cur{border-color:var(--accent);color:var(--accent)}
+.dot.done{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+pre.code{margin:0;background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:14px 0;overflow-x:auto;
+  font-family:var(--f-mono);font-size:14px;line-height:1.7;tab-size:4}
+.ln{display:block;padding:0 16px 0 0;white-space:pre}
+.ln::before{content:attr(data-n);display:inline-block;width:3em;padding-right:1em;text-align:right;color:var(--code-gutter);user-select:none}
+.k{color:var(--syn-kw);font-weight:600}.t{color:var(--syn-type);font-weight:600}.s{color:var(--syn-str)}.nm{color:var(--syn-num)}.c{color:var(--syn-com);font-style:italic}.fn{color:var(--syn-fn)}.ex{color:var(--syn-ex);font-weight:600}
+.blank{font:600 14px var(--f-mono);padding:1px 6px;border:1.5px dashed var(--warm);border-radius:5px;background:var(--warm-soft);color:var(--ink);text-align:center}
+.blank.ok{border-style:solid;border-color:var(--ok);background:var(--ok-soft)}
+.blank.no{border-style:solid;border-color:var(--bad);background:var(--bad-soft)}
+.console{margin-top:14px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.console-h{font:12px var(--f-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding:6px 12px;border-bottom:1px solid var(--line);background:var(--bg)}
+.console textarea{display:block;width:100%;border:0;background:var(--code-bg);color:var(--ink);font:15px/1.6 var(--f-mono);padding:12px;resize:vertical;min-height:88px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center}
+.btn{font:700 15px var(--f-body);padding:9px 16px;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.plain{background:transparent;border-color:var(--line);color:var(--muted)}
+.btn:disabled{opacity:.45;cursor:default}
+.spacer{flex:1}
+.fb{margin-top:14px;padding:12px 14px;border-radius:8px;border-left:4px solid var(--line);background:var(--bg)}
+.fb.ok{border-color:var(--ok);background:var(--ok-soft)}
+.fb.no{border-color:var(--bad);background:var(--bad-soft)}
+.fb.hint{border-color:var(--warm);background:var(--warm-soft)}
+.fb strong{display:block;margin-bottom:2px}
+.fb code,.guide code,.consigna code,.tests code{font-family:var(--f-mono);font-size:.9em}
+/* modo error */
+.lines-pick .ln{cursor:pointer;border-left:3px solid transparent}
+.lines-pick .ln:hover{background:var(--warm-soft)}
+.lines-pick .ln.no{background:var(--bad-soft);border-color:var(--bad)}
+.lines-pick .ln.ok{background:var(--ok-soft);border-color:var(--ok)}
+.lines-pick .ln:focus-visible{outline:2px solid var(--warm);outline-offset:-2px}
+/* modo armar */
+.parsons{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:640px){.parsons{grid-template-columns:minmax(0,1fr)}}
+.zone-h{font:12px var(--f-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px}
+.zone{min-height:120px;border:1.5px dashed var(--line);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:6px;background:var(--code-bg);overflow-x:auto}
+.tile{font:14px var(--f-mono);text-align:left;white-space:pre;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:6px 10px;cursor:pointer}
+.tile:hover{border-color:var(--accent)}
+.zone.sol .tile{border-left:3px solid var(--accent)}
+.empty{font-size:14px;color:var(--muted);padding:8px}
+/* modo programar */
+.steps{margin:0 0 14px;padding-left:1.3em;max-width:70ch}
+.steps li{margin-bottom:4px}
+.tests{width:100%;border-collapse:collapse;margin:0 0 14px;font-size:15px}
+.tests th,.tests td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+.tests th{background:var(--bg);font:12px var(--f-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.tests td{font-family:var(--f-mono);font-size:14px;white-space:pre-wrap}
+.tbl-wrap{overflow-x:auto}
+.sub{font:12px var(--f-mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:16px 0 6px}
+/* guía */
+.guide h3{font-family:var(--f-display);font-weight:600;font-size:18px;margin:0 0 10px}
+.guide p{margin:0 0 10px;font-size:15px}
+.skel{font:14px/1.6 var(--f-mono);background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:0 0 14px;white-space:pre;overflow-x:auto}
+.skel .a{background:var(--accent-soft);color:var(--accent);border-radius:4px;padding:0 3px;font-weight:600}
+.skel .w{background:var(--warm-soft);color:var(--warm);border-radius:4px;padding:0 3px}
+.guide dl{margin:0;display:grid;gap:10px;font-size:15px}
+.guide dt{font-weight:700;font-family:var(--f-mono);font-size:13.5px;word-break:break-word}
+.guide dd{margin:0;color:var(--muted)}
+.guide hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+.reset{font:13px var(--f-body);background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.shake{animation:shake .25s 2}
+@media (prefers-reduced-motion:reduce){.shake{animation:none}.bar i{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="eyebrow">Programación 1 · Excepciones</span>
+      <h1>Laboratorio de try/catch <code>{ }</code></h1>
+    </div>
+    <div class="total"><span id="totTxt">0 / 0 resueltos</span><div class="bar"><i id="totBar"></i></div></div>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+
+  <div class="grid">
+    <main class="card" id="stage" aria-live="polite"></main>
+
+    <aside class="card guide">
+      <h3>Anatomía de un try/catch</h3>
+<div class="skel"><span class="a">try</span> {
+    <span class="w">// código que se puede romper</span>
+} <span class="a">catch</span> (<span class="a">TipoDeError</span> e) {
+    <span class="w">// qué hacer si se rompe</span>
+}
+<span class="w">// el programa sigue acá</span></div>
+      <p>Si una línea del <code>try</code> lanza un error, <strong>las líneas siguientes del try no se ejecutan</strong>: se salta directo al <code>catch</code>. Si no hay error, el <code>catch</code> se ignora.</p>
+      <dl>
+        <div><dt>InputMismatchException</dt><dd><code>teclado.nextInt()</code> recibe algo que no es un número entero. Necesita <code>import java.util.InputMismatchException;</code></dd></div>
+        <div><dt>ArithmeticException</dt><dd>División entera entre 0: <code>10 / 0</code>.</dd></div>
+        <div><dt>ArrayIndexOutOfBoundsException</dt><dd>Posición que no existe en el array: <code>v[5]</code> cuando <code>v.length</code> es 5.</dd></div>
+        <div><dt>NumberFormatException</dt><dd><code>Integer.parseInt("hola")</code>: el texto no se puede convertir a número.</dd></div>
+        <div><dt>teclado.next()</dt><dd>Dentro del <code>catch</code> de un <code>nextInt()</code>, descarta lo que se escribió mal. Sin esta línea, un bucle que vuelve a pedir el dato nunca termina.</dd></div>
+      </dl>
+      <hr>
+      <p style="font-size:14px;color:var(--muted)">En los ejemplos se omiten la clase <code>Main</code>, el <code>main</code> y los <code>import</code> para abreviar. <code>teclado</code> es un <code>Scanner</code> ya creado.</p>
+      <button class="reset" id="resetBtn" type="button">Reiniciar progreso</button>
+      <span id="resetConfirm" hidden style="font-size:13px"> ¿Seguro? <button class="reset" id="resetYes" type="button">Sí, borrar</button> · <button class="reset" id="resetNo" type="button">Cancelar</button></span>
+    </aside>
+  </div>
+</div>
+
+<script>
+const DATA = {
+  predecir: [
+    {t:"Dividir entre cero", code:
+`try {
+    int r = 10 / 0;
+    System.out.println("Resultado: " + r);
+} catch (ArithmeticException e) {
+    System.out.println("Error");
+}
+System.out.println("Fin");`, a:["Error\nFin"], hint:"10 / 0 lanza ArithmeticException. ¿Se llega a ejecutar el println del try?", ex:"La división falla, así que el println del try se saltea y se ejecuta el catch (Error). Después el programa sigue normalmente y muestra Fin."},
+    {t:"Cuando no hay error", code:
+`try {
+    int r = 10 / 2;
+    System.out.println(r);
+} catch (ArithmeticException e) {
+    System.out.println("Error");
+}
+System.out.println("Fin");`, a:["5\nFin"], hint:"Si nada falla dentro del try, ¿se ejecuta el catch?", ex:"10 / 2 es 5 y no lanza ningún error: el try se ejecuta completo y el catch se ignora."},
+    {t:"Lo que queda después del error", code:
+`try {
+    System.out.println("A");
+    int x = 5 / 0;
+    System.out.println("B");
+} catch (ArithmeticException e) {
+    System.out.println("C");
+}
+System.out.println("D");`, a:["A\nC\nD"], hint:"Las líneas del try se ejecutan en orden hasta que una falla.", ex:"Se imprime A. En 5 / 0 se produce el error y el programa salta al catch: B nunca se imprime. Luego C y, fuera del try/catch, D."},
+    {t:"Una posición que no existe", code:
+`int[] v = {4, 8, 15};
+try {
+    System.out.println(v[2]);
+    System.out.println(v[3]);
+} catch (ArrayIndexOutOfBoundsException e) {
+    System.out.println("Fuera del array");
+}`, a:["15\nFuera del array"], hint:"El array tiene 3 elementos: las posiciones válidas son 0, 1 y 2.", ex:"v[2] existe y vale 15. v[3] no existe, así que se salta al catch."},
+    {t:"Convertir texto a número", code:
+`try {
+    int n = Integer.parseInt("12");
+    System.out.println(n * 2);
+} catch (NumberFormatException e) {
+    System.out.println("No es un número");
+}`, a:["24"], hint:"\"12\" sí se puede convertir a número.", ex:"Integer.parseInt(\"12\") devuelve el int 12, y 12 * 2 = 24. El catch no se ejecuta."},
+    {t:"Un texto que no es número", code:
+`try {
+    int n = Integer.parseInt("doce");
+    System.out.println(n * 2);
+} catch (NumberFormatException e) {
+    System.out.println("No es un número");
+}
+System.out.println("Listo");`, a:["No es un número\nListo","No es un numero\nListo"], hint:"parseInt solo entiende dígitos, no palabras.", ex:"\"doce\" no se puede convertir: se lanza NumberFormatException y se ejecuta el catch. Después el programa sigue y muestra Listo."},
+    {t:"Leer con Scanner", code:
+`// Por teclado se escribe: hola
+try {
+    int edad = teclado.nextInt();
+    System.out.println("Edad: " + edad);
+} catch (InputMismatchException e) {
+    System.out.println("Había que escribir un número.");
+}`, a:["Había que escribir un número.","Habia que escribir un numero."], hint:"nextInt espera un número entero y recibe una palabra.", ex:"nextInt no puede leer \"hola\" como entero y lanza InputMismatchException. Se saltea el println del try y se muestra el mensaje del catch."},
+    {t:"try dentro del for", code:
+`String[] datos = {"3", "x", "5"};
+int suma = 0;
+for (int i = 0; i < datos.length; i++) {
+    try {
+        suma = suma + Integer.parseInt(datos[i]);
+    } catch (NumberFormatException e) {
+        System.out.println("Salteado: " + datos[i]);
+    }
+}
+System.out.println("Suma: " + suma);`, a:["Salteado: x\nSuma: 8"], hint:"El try/catch está dentro del for: después del catch, el for sigue con la próxima vuelta.", ex:"Vuelta 0: suma = 3. Vuelta 1: \"x\" falla, se muestra Salteado: x. Vuelta 2: suma = 3 + 5 = 8. Al final, Suma: 8."},
+    {t:"try por fuera del for", code:
+`String[] datos = {"3", "x", "5"};
+int suma = 0;
+try {
+    for (int i = 0; i < datos.length; i++) {
+        suma = suma + Integer.parseInt(datos[i]);
+    }
+} catch (NumberFormatException e) {
+    System.out.println("Error con un dato");
+}
+System.out.println("Suma: " + suma);`, a:["Error con un dato\nSuma: 3"], hint:"Comparar con el ejercicio anterior: ahora el for completo está dentro del try.", ex:"Al fallar \"x\" se sale del try, y por lo tanto también del for. El \"5\" nunca se suma: la suma queda en 3. Por eso conviene poner el try dentro del for."},
+    {t:"try/catch dentro de una función", code:
+`public static int dividir(int a, int b) {
+    try {
+        return a / b;
+    } catch (ArithmeticException e) {
+        return -1;
+    }
+}
+
+public static void main(String[] args) {
+    System.out.println(dividir(9, 3));
+    System.out.println(dividir(9, 0));
+}`, a:["3\n-1"], hint:"Cada llamada es independiente: en una hay error y en la otra no.", ex:"dividir(9, 3) devuelve 3. En dividir(9, 0) la división falla y el catch devuelve -1."}
+  ],
+  completar: [
+    {t:"La palabra que abre el bloque", q:"Proteger la división para que el programa no se detenga.", code:
+`⟦0⟧ {
+    int r = a / b;
+    System.out.println(r);
+} catch (ArithmeticException e) {
+    System.out.println("No se puede dividir entre 0.");
+}`, b:[["try"]], hint:"El bloque que \"intenta\" ejecutar el código.", ex:"try encierra las líneas que se pueden romper."},
+    {t:"La palabra que atrapa el error", q:"Completar la palabra que falta.", code:
+`try {
+    int r = a / b;
+    System.out.println(r);
+} ⟦0⟧ (ArithmeticException e) {
+    System.out.println("No se puede dividir entre 0.");
+}`, b:[["catch"]], hint:"En inglés significa \"atrapar\".", ex:"catch indica qué tipo de error se atrapa y qué hacer en ese caso."},
+    {t:"Error al dividir", q:"Escribir el tipo de error que se produce al dividir un int entre 0.", code:
+`try {
+    int promedio = total / cantidad;
+} catch (⟦0⟧ e) {
+    System.out.println("No hay datos para promediar.");
+}`, b:[["ArithmeticException"]], hint:"Es un error aritmético.", ex:"La división entera entre 0 lanza ArithmeticException."},
+    {t:"Error con arrays", q:"Escribir el tipo de error que se produce al usar una posición que no existe.", code:
+`int[] notas = new int[5];
+try {
+    notas[pos] = 10;
+} catch (⟦0⟧ e) {
+    System.out.println("Esa posición no existe.");
+}`, b:[["ArrayIndexOutOfBoundsException"]], hint:"Array + Index + Out Of Bounds (fuera de límites).", ex:"Si pos es menor que 0 o mayor o igual que 5, se lanza ArrayIndexOutOfBoundsException."},
+    {t:"Error al convertir texto", q:"Escribir el tipo de error que lanza Integer.parseInt cuando el texto no es un número.", code:
+`try {
+    int n = Integer.parseInt(texto);
+} catch (⟦0⟧ e) {
+    System.out.println("No es un número.");
+}`, b:[["NumberFormatException"]], hint:"El formato del número no es válido.", ex:"Integer.parseInt(\"hola\") lanza NumberFormatException."},
+    {t:"Error al leer con Scanner", q:"Escribir el tipo de error que lanza nextInt() cuando se escriben letras.", code:
+`try {
+    int edad = teclado.nextInt();
+} catch (⟦0⟧ e) {
+    System.out.println("Había que escribir un número.");
+}`, b:[["InputMismatchException"]], hint:"Input (entrada) + Mismatch (no coincide).", ex:"nextInt espera un entero; si recibe letras lanza InputMismatchException."},
+    {t:"El import necesario", q:"InputMismatchException no se puede usar sin importarla. Completar el import.", code:
+`import java.util.Scanner;
+import java.util.⟦0⟧;`, b:[["InputMismatchException"]], hint:"Está en el mismo paquete que Scanner.", ex:"InputMismatchException pertenece a java.util, igual que Scanner, y hay que importarla."},
+    {t:"Descartar lo que se escribió mal", q:"El bucle vuelve a pedir el número. Completar el método que descarta la palabra mal escrita (si falta, el bucle nunca termina).", code:
+`while (!valido) {
+    try {
+        n = teclado.nextInt();
+        valido = true;
+    } catch (InputMismatchException e) {
+        System.out.println("Eso no es un número.");
+        teclado.⟦0⟧();
+    }
+}`, b:[["next"]], hint:"Es el método de Scanner que lee una palabra.", ex:"teclado.next() lee y descarta la palabra que causó el error. Sin esa línea, nextInt vuelve a encontrar la misma palabra en cada vuelta."}
+  ],
+  error: [
+    {t:"División entre cero", q:"El programa compila, pero al ejecutarlo se detiene con un error. Hacer clic en la línea donde se produce.", lines:[
+"int total = 120;",
+"int alumnos = 0;",
+"System.out.println(\"Total: \" + total);",
+"int promedio = total / alumnos;",
+"System.out.println(\"Promedio: \" + promedio);"], bad:3, ex:"alumnos vale 0 y total / alumnos lanza ArithmeticException. Esa es la línea que tendría que ir dentro de un try."},
+    {t:"Una vuelta de más", q:"El programa se detiene con ArrayIndexOutOfBoundsException. Hacer clic en la línea donde se produce.", lines:[
+"int[] v = {2, 4, 6, 8, 10};",
+"int suma = 0;",
+"for (int i = 0; i <= v.length; i++) {",
+"    suma = suma + v[i];",
+"}",
+"System.out.println(suma);"], bad:3, ex:"El error se lanza al usar v[5], dentro del for. La causa es el <= de la condición: con i < v.length el error no aparece. A veces es mejor corregir la causa que agregar un try/catch."},
+    {t:"Un número con coma", q:"El programa se detiene con NumberFormatException. Hacer clic en la línea donde se produce.", lines:[
+"String a = \"8\";",
+"String b = \"3,5\";",
+"int x = Integer.parseInt(a);",
+"int y = Integer.parseInt(b);",
+"System.out.println(x + y);"], bad:3, ex:"\"3,5\" no es un número entero: tiene una coma. Integer.parseInt(b) lanza NumberFormatException."},
+    {t:"Una palabra en lugar de un número", q:"Al escribir diez por teclado, el programa se detiene. Hacer clic en la línea donde se produce.", lines:[
+"System.out.print(\"Nombre: \");",
+"String nombre = teclado.next();",
+"System.out.print(\"Edad: \");",
+"int edad = teclado.nextInt();",
+"System.out.println(nombre + \" tiene \" + edad + \" años.\");"], bad:3, ex:"teclado.next() acepta cualquier palabra, pero teclado.nextInt() no puede leer \"diez\" como entero y lanza InputMismatchException."},
+    {t:"El try llega tarde", q:"El programa tiene un try/catch y aun así se detiene con ArithmeticException. Hacer clic en la línea donde se produce.", lines:[
+"int a = 10;",
+"int b = 0;",
+"int r = a / b;",
+"try {",
+"    System.out.println(r);",
+"} catch (ArithmeticException e) {",
+"    System.out.println(\"No se puede dividir.\");",
+"}"], bad:2, ex:"La división está fuera del try, así que el catch no la protege. La línea int r = a / b; tiene que ir dentro del try."},
+    {t:"El catch equivocado", q:"El programa tiene un try/catch y aun así se detiene. Hacer clic en la línea que hay que corregir.", lines:[
+"int[] puntos = new int[3];",
+"try {",
+"    puntos[3] = 10;",
+"} catch (ArithmeticException e) {",
+"    System.out.println(\"Posición inválida.\");",
+"}"], bad:3, ex:"puntos[3] lanza ArrayIndexOutOfBoundsException, pero el catch atrapa ArithmeticException. Un catch solo atrapa el tipo de error que indica: hay que cambiarlo por catch (ArrayIndexOutOfBoundsException e)."}
+  ],
+  armar: [
+    {t:"Dividir sin que se rompa", q:"Ordenar las líneas para proteger la división (a y b ya existen). Sobra una línea.", sol:[[
+"try {",
+"int r = a / b;",
+"System.out.println(\"Resultado: \" + r);",
+"} catch (ArithmeticException e) {",
+"System.out.println(\"No se puede dividir entre 0.\");",
+"}"]], extra:["} catch (NumberFormatException e) {"], hint:"Pensar qué tipo de error lanza una división entre 0.", ex:"La división y el println que usa r van dentro del try. El catch atrapa ArithmeticException, que es el error de dividir entre 0."},
+    {t:"Leer una edad", q:"Ordenar las líneas para leer una edad sin que el programa se detenga si se escriben letras. Sobra una línea.", sol:[[
+"try {",
+"int edad = teclado.nextInt();",
+"System.out.println(\"Edad: \" + edad);",
+"} catch (InputMismatchException e) {",
+"System.out.println(\"Había que escribir un número.\");",
+"}"]], extra:["} catch (ArithmeticException e) {"], hint:"¿Qué error lanza nextInt() cuando recibe letras?", ex:"nextInt() va dentro del try y el catch atrapa InputMismatchException."},
+    {t:"Sumar los datos válidos", q:"Ordenar las líneas para sumar los números del array datos, salteando los que no son números. Sobra una línea.", sol:[[
+"int suma = 0;",
+"for (int i = 0; i < datos.length; i++) {",
+"try {",
+"suma = suma + Integer.parseInt(datos[i]);",
+"} catch (NumberFormatException e) {",
+"System.out.println(\"Salteado: \" + datos[i]);",
+"}",
+"}",
+"System.out.println(\"Suma: \" + suma);"]], extra:["teclado.next();"], hint:"El try va dentro del for, para que un dato malo no corte el recorrido.", ex:"Con el try dentro del for, cada dato se intenta por separado: los que fallan se avisan y el for sigue con el siguiente."},
+    {t:"Pedir hasta que sea un número", q:"Ordenar las líneas para que la función vuelva a pedir el número hasta que se escriba un entero.", sol:[[
+"public static int leerEntero() {",
+"while (true) {",
+"try {",
+"return teclado.nextInt();",
+"} catch (InputMismatchException e) {",
+"System.out.println(\"Eso no es un número.\");",
+"teclado.next();",
+"}",
+"}",
+"}"],[
+"public static int leerEntero() {",
+"while (true) {",
+"try {",
+"return teclado.nextInt();",
+"} catch (InputMismatchException e) {",
+"teclado.next();",
+"System.out.println(\"Eso no es un número.\");",
+"}",
+"}",
+"}"]], extra:[], hint:"El return sale de la función apenas se lee un número válido; si falla, el while vuelve a intentarlo.", ex:"while (true) repite sin fin, pero el return termina la función cuando nextInt() funciona. Si falla, el catch avisa y descarta la palabra con teclado.next()."}
+  ],
+  programar: [
+ {
+  "t": "Contar hermanos",
+  "q": "El programa pide la cantidad de hermanos y se detiene si se escribe una palabra.",
+  "steps": [
+   "Copiar el código en Eclipse y ejecutarlo con <code>2<\/code>. Después ejecutarlo de nuevo escribiendo <code>dos<\/code>.",
+   "Anotar en el comentario de arriba el nombre del error que aparece en la consola.",
+   "Agregar un <code>try/catch<\/code> para que, si no se escribe un número, se muestre <code>Error: había que escribir un número entero.<\/code> y el programa llegue igual hasta <code>Fin.<\/code>",
+   "No olvidar el <code>import<\/code> de <code>InputMismatchException<\/code>."
+  ],
+  "tests": [
+   [
+    "2",
+    "Contando a quien responde, en la casa hay 3 hijos.\nFin."
+   ],
+   [
+    "dos",
+    "Error: había que escribir un número entero.\nFin."
+   ]
+  ],
+  "base": "/*\n * LABORATORIO TRY/CATCH — Ejercicio 1\n * Nombre: ____________________\n * Nombre del error que apareció al escribir \"dos\": ............\n */\nimport java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner teclado = new Scanner(System.in);\n        System.out.print(\"Cantidad de hermanos: \");\n        int hermanos = teclado.nextInt();\n        System.out.println(\"Contando a quien responde, en la casa hay \" + (hermanos + 1) + \" hijos.\");\n        System.out.println(\"Fin.\");\n    }\n}",
+  "sol": "import java.util.InputMismatchException;\nimport java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner teclado = new Scanner(System.in);\n        System.out.print(\"Cantidad de hermanos: \");\n        try {\n            int hermanos = teclado.nextInt();\n            System.out.println(\"Contando a quien responde, en la casa hay \" + (hermanos + 1) + \" hijos.\");\n        } catch (InputMismatchException e) {\n            System.out.println(\"Error: había que escribir un número entero.\");\n        }\n        System.out.println(\"Fin.\");\n    }\n}"
+ },
+ {
+  "t": "Repartir caramelos",
+  "q": "El programa reparte caramelos en partes iguales y se detiene si hay 0 personas.",
+  "steps": [
+   "Ejecutar con 10 caramelos y 3 personas. Después con 10 caramelos y 0 personas.",
+   "Anotar el nombre del error que aparece.",
+   "Proteger la división con un <code>try/catch<\/code> que muestre <code>No se puede repartir entre 0 personas.<\/code>"
+  ],
+  "tests": [
+   [
+    "10 y 3",
+    "A cada persona le tocan 3 caramelos."
+   ],
+   [
+    "10 y 0",
+    "No se puede repartir entre 0 personas."
+   ]
+  ],
+  "base": "/*\n * LABORATORIO TRY/CATCH — Ejercicio 2\n * Nombre: ____________________\n * Nombre del error que apareció con 0 personas: ............\n */\nimport java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner teclado = new Scanner(System.in);\n        System.out.print(\"Cantidad de caramelos: \");\n        int caramelos = teclado.nextInt();\n        System.out.print(\"Cantidad de personas: \");\n        int personas = teclado.nextInt();\n        int cadaUno = caramelos / personas;\n        System.out.println(\"A cada persona le tocan \" + cadaUno + \" caramelos.\");\n    }\n}",
+  "sol": "import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner teclado = new Scanner(System.in);\n        System.out.print(\"Cantidad de caramelos: \");\n        int caramelos = teclado.nextInt();\n        System.out.print(\"Cantidad de personas: \");\n        int personas = teclado.nextInt();\n        try {\n            int cadaUno = caramelos / personas;\n            System.out.println(\"A cada persona le tocan \" + cadaUno + \" caramelos.\");\n        } catch (ArithmeticException e) {\n            System.out.println(\"No se puede repartir entre 0 personas.\");\n        }\n    }\n}"
+ },
+ {
+  "t": "Días de clase",
+  "q": "El programa muestra el nombre de un día de clase a partir de su número.",
+  "steps": [
+   "Ejecutar con 3, después con 7 y después con 0.",
+   "Anotar el nombre del error que aparece.",
+   "Agregar un <code>try/catch<\/code> que muestre <code>Ese día no existe en la semana de clases.<\/code>"
+  ],
+  "tests": [
+   [
+    "3",
+    "El día 3 es miércoles."
+   ],
+   [
+    "7",
+    "Ese día no existe en la semana de clases."
+   ],
+   [
+    "0",
+    "Ese día no existe en la semana de clases."
+   ]
+  ],
+  "base": "/*\n * LABORATORIO TRY/CATCH — Ejercicio 3\n * Nombre: ____________________\n * Nombre del error que apareció con el día 7: ............\n * ¿Y con el día 0? ............\n */\nimport java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner teclado = new Scanner(System.in);\n        String[] dias = {\"lunes\", \"martes\", \"miércoles\", \"jueves\", \"viernes\"};\n        System.out.print(\"Número de día (1 a 5): \");\n        int numero = teclado.nextInt();\n        System.out.println(\"El día \" + numero + \" es \" + dias[numero - 1] + \".\");\n    }\n}",
+  "sol": "import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner teclado = new Scanner(System.in);\n        String[] dias = {\"lunes\", \"martes\", \"miércoles\", \"jueves\", \"viernes\"};\n        System.out.print(\"Número de día (1 a 5): \");\n        int numero = teclado.nextInt();\n        try {\n            System.out.println(\"El día \" + numero + \" es \" + dias[numero - 1] + \".\");\n        } catch (ArrayIndexOutOfBoundsException e) {\n            System.out.println(\"Ese día no existe en la semana de clases.\");\n        }\n    }\n}"
+ },
+ {
+  "t": "Sumar edades",
+  "q": "El programa suma las edades de un array de textos, pero algunas no están bien escritas. No pide nada por teclado.",
+  "steps": [
+   "Ejecutar el programa y anotar el error y con qué edad se rompió.",
+   "Agregar un <code>try/catch<\/code> para que las edades mal escritas se avisen y se salteen, sin cortar el recorrido.",
+   "Pensar dónde va el <code>try<\/code>: ¿dentro o fuera del <code>for<\/code>? (repasar los ejercicios 8 y 9 de «Predecir la salida»)."
+  ],
+  "tests": [
+   [
+    "(nada)",
+    "No es un número: quince\nNo es un número: 16 años\nEdades válidas: 3\nSuma: 48"
+   ]
+  ],
+  "base": "/*\n * LABORATORIO TRY/CATCH — Ejercicio 4\n * Nombre: ____________________\n * Nombre del error que apareció: ............\n * ¿Con qué edad de la lista se rompió? ............\n */\npublic class Main {\n    public static void main(String[] args) {\n        String[] edades = {\"15\", \"16\", \"quince\", \"17\", \"16 años\"};\n        int suma = 0;\n        int validas = 0;\n        for (int i = 0; i < edades.length; i++) {\n            int edad = Integer.parseInt(edades[i]);\n            suma = suma + edad;\n            validas++;\n        }\n        System.out.println(\"Edades válidas: \" + validas);\n        System.out.println(\"Suma: \" + suma);\n    }\n}",
+  "sol": "public class Main {\n    public static void main(String[] args) {\n        String[] edades = {\"15\", \"16\", \"quince\", \"17\", \"16 años\"};\n        int suma = 0;\n        int validas = 0;\n        for (int i = 0; i < edades.length; i++) {\n            try {\n                int edad = Integer.parseInt(edades[i]);\n                suma = suma + edad;\n                validas++;\n            } catch (NumberFormatException e) {\n                System.out.println(\"No es un número: \" + edades[i]);\n            }\n        }\n        System.out.println(\"Edades válidas: \" + validas);\n        System.out.println(\"Suma: \" + suma);\n    }\n}"
+ },
+ {
+  "t": "Nota válida",
+  "q": "El programa pide una nota e indica si está aprobada. Hay que lograr que vuelva a pedirla mientras no sea válida.",
+  "steps": [
+   "Usar un <code>do-while<\/code> con una variable <code>boolean valida<\/code>.",
+   "Si se escribe una palabra: mostrar <code>Eso no es un número.<\/code> y descartarla con <code>teclado.next()<\/code>.",
+   "Si el número no está entre 1 y 12: mostrar <code>La nota tiene que estar entre 1 y 12.<\/code>",
+   "Cuando la nota es válida, el bucle termina y se muestra el resultado."
+  ],
+  "tests": [
+   [
+    "diez",
+    "Eso no es un número.\n(vuelve a pedir la nota)"
+   ],
+   [
+    "15",
+    "La nota tiene que estar entre 1 y 12.\n(vuelve a pedir la nota)"
+   ],
+   [
+    "8",
+    "Aprobado con 8."
+   ]
+  ],
+  "base": "/*\n * LABORATORIO TRY/CATCH — Ejercicio 5\n * Nombre: ____________________\n */\nimport java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner teclado = new Scanner(System.in);\n        System.out.print(\"Nota (1 a 12): \");\n        int nota = teclado.nextInt();\n        // COMPLETAR: que vuelva a pedir la nota si se escribe una letra\n        //            o un número que no esté entre 1 y 12.\n        if (nota >= 6) {\n            System.out.println(\"Aprobado con \" + nota + \".\");\n        } else {\n            System.out.println(\"Reprobado con \" + nota + \".\");\n        }\n    }\n}",
+  "sol": "import java.util.InputMismatchException;\nimport java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner teclado = new Scanner(System.in);\n        int nota = 0;\n        boolean valida = false;\n        do {\n            System.out.print(\"Nota (1 a 12): \");\n            try {\n                nota = teclado.nextInt();\n                if (nota >= 1 && nota <= 12) {\n                    valida = true;\n                } else {\n                    System.out.println(\"La nota tiene que estar entre 1 y 12.\");\n                }\n            } catch (InputMismatchException e) {\n                System.out.println(\"Eso no es un número.\");\n                teclado.next();\n            }\n        } while (!valida);\n        if (nota >= 6) {\n            System.out.println(\"Aprobado con \" + nota + \".\");\n        } else {\n            System.out.println(\"Reprobado con \" + nota + \".\");\n        }\n    }\n}"
+ },
+ {
+  "t": "Calculadora (integrador)",
+  "q": "Una calculadora con menú que se puede romper en tres lugares distintos.",
+  "steps": [
+   "Probar el programa e intentar romperlo de todas las formas posibles.",
+   "Anotar en el comentario de arriba los 3 lugares donde se rompe.",
+   "Arreglar <code>leerEntero<\/code> para que vuelva a pedir el número hasta que se escriba un entero.",
+   "Proteger la lectura de la opción del menú y la división entre 0 (<code>No se puede dividir entre 0.<\/code>)."
+  ],
+  "tests": [
+   [
+    "Opción: x",
+    "Opción no válida."
+   ],
+   [
+    "2, luego 8 y 0",
+    "No se puede dividir entre 0."
+   ],
+   [
+    "1, luego hola",
+    "Eso no es un número entero.\n(vuelve a pedir el número)"
+   ]
+  ],
+  "base": "/*\n * LABORATORIO TRY/CATCH — Ejercicio 6\n * Nombre: ____________________\n * Los 3 lugares donde se puede romper el programa:\n *   1. ............\n *   2. ............\n *   3. ............\n */\nimport java.util.Scanner;\n\npublic class Main {\n    static Scanner teclado = new Scanner(System.in);\n\n    public static void main(String[] args) {\n        int opcion;\n        do {\n            System.out.println();\n            System.out.println(\"1. Sumar\");\n            System.out.println(\"2. Dividir\");\n            System.out.println(\"0. Salir\");\n            System.out.print(\"Opción: \");\n            opcion = teclado.nextInt();\n            switch (opcion) {\n                case 1:\n                    int a = leerEntero(\"Primer número: \");\n                    int b = leerEntero(\"Segundo número: \");\n                    System.out.println(\"Resultado: \" + (a + b));\n                    break;\n                case 2:\n                    int x = leerEntero(\"Dividendo: \");\n                    int y = leerEntero(\"Divisor: \");\n                    System.out.println(\"Resultado: \" + (x / y));\n                    break;\n                case 0:\n                    System.out.println(\"Chau.\");\n                    break;\n                default:\n                    System.out.println(\"Opción no válida.\");\n            }\n        } while (opcion != 0);\n    }\n\n    // Pide un número entero.\n    // COMPLETAR: que lo vuelva a pedir hasta que se escriba un número entero.\n    public static int leerEntero(String mensaje) {\n        System.out.print(mensaje);\n        return teclado.nextInt();\n    }\n}",
+  "sol": "import java.util.InputMismatchException;\nimport java.util.Scanner;\n\npublic class Main {\n    static Scanner teclado = new Scanner(System.in);\n\n    public static void main(String[] args) {\n        int opcion;\n        do {\n            System.out.println();\n            System.out.println(\"1. Sumar\");\n            System.out.println(\"2. Dividir\");\n            System.out.println(\"0. Salir\");\n            System.out.print(\"Opción: \");\n            try {\n                opcion = teclado.nextInt();\n            } catch (InputMismatchException e) {\n                teclado.next();\n                opcion = -1;\n            }\n            switch (opcion) {\n                case 1:\n                    int a = leerEntero(\"Primer número: \");\n                    int b = leerEntero(\"Segundo número: \");\n                    System.out.println(\"Resultado: \" + (a + b));\n                    break;\n                case 2:\n                    int x = leerEntero(\"Dividendo: \");\n                    int y = leerEntero(\"Divisor: \");\n                    try {\n                        System.out.println(\"Resultado: \" + (x / y));\n                    } catch (ArithmeticException e) {\n                        System.out.println(\"No se puede dividir entre 0.\");\n                    }\n                    break;\n                case 0:\n                    System.out.println(\"Chau.\");\n                    break;\n                default:\n                    System.out.println(\"Opción no válida.\");\n            }\n        } while (opcion != 0);\n    }\n\n    // Pide un número entero hasta que se escriba uno.\n    public static int leerEntero(String mensaje) {\n        while (true) {\n            System.out.print(mensaje);\n            try {\n                return teclado.nextInt();\n            } catch (InputMismatchException e) {\n                System.out.println(\"Eso no es un número entero.\");\n                teclado.next();\n            }\n        }\n    }\n}"
+ }
+]
+};
+const MODES = [
+  {id:"predecir", name:"Predecir la salida", desc:"Leer el programa y escribir lo que aparece en la consola, una línea debajo de la otra."},
+  {id:"completar", name:"Completar el código", desc:"Escribir lo que falta en cada espacio marcado."},
+  {id:"error", name:"Encontrar el error", desc:""},
+  {id:"armar", name:"Armar el código", desc:""},
+  {id:"programar", name:"Programar en Eclipse", desc:""}
+];
+
+/* ---------- estado ---------- */
+const KEY = "lab-trycatch-v1";
+let solved = {predecir:{},completar:{},error:{},armar:{},programar:{}};
+try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s) for(const k in solved) solved[k] = s[k] || {}; }catch(e){}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(solved)); }catch(e){} }
+let mode = "predecir", idx = {predecir:0,completar:0,error:0,armar:0,programar:0};
+let parsonsState = null, showSol = false;
+
+/* ---------- resaltado ---------- */
+const KW = new Set("public static void return if else for while do new true false class private final break continue try catch import switch case default throw".split(" "));
+const TY = new Set("int double boolean String char long float Scanner".split(" "));
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function hl(src){
+  const re = /(\/\/.*$|\/\*.*$|^\s*\*.*$)|("(?:[^"\\]|\\.)*")|\b([A-Za-z_]\w*)\b(?=\s*\()|\b([A-Za-z_]\w*)\b|\b(\d+(?:\.\d+)?)\b/gm;
+  let out = "", last = 0, m;
+  while((m = re.exec(src))){
+    out += esc(src.slice(last, m.index));
+    if(m[1]) out += `<span class="c">${esc(m[1])}</span>`;
+    else if(m[2]) out += `<span class="s">${esc(m[2])}</span>`;
+    else if(m[3]) out += KW.has(m[3]) ? `<span class="k">${m[3]}</span>` : `<span class="fn">${m[3]}</span>`;
+    else if(m[4]) out += KW.has(m[4]) ? `<span class="k">${m[4]}</span>` : TY.has(m[4]) ? `<span class="t">${m[4]}</span>` : /Exception$/.test(m[4]) ? `<span class="ex">${m[4]}</span>` : m[4];
+    else if(m[5]) out += `<span class="nm">${m[5]}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(src.slice(last));
+}
+const codeLines = src => src.split("\n").map((l,i)=>`<span class="ln" data-n="${i+1}">${hl(l)||" "}</span>`).join("");
+
+/* ---------- interfaz ---------- */
+const $ = id => document.getElementById(id);
+function renderTabs(){
+  $("tabs").innerHTML = MODES.map(m=>{
+    const n = Object.keys(solved[m.id]).length, tot = DATA[m.id].length;
+    return `<button class="tab" role="tab" id="tab-${m.id}" aria-selected="${m.id===mode}" data-m="${m.id}">${m.name}<span class="n">${n}/${tot}</span></button>`;
+  }).join("");
+  let n=0,t=0; for(const m of MODES){ n+=Object.keys(solved[m.id]).length; t+=DATA[m.id].length; }
+  $("totTxt").textContent = `${n} / ${t} resueltos`;
+  $("totBar").style.width = (t? n/t*100 : 0) + "%";
+}
+$("tabs").addEventListener("click", e=>{ const b=e.target.closest(".tab"); if(!b) return; mode=b.dataset.m; parsonsState=null; showSol=false; render(); });
+
+function head(ex){
+  const list = DATA[mode], i = idx[mode];
+  const dots = list.map((_,j)=>`<button class="dot ${j===i?"cur":""} ${solved[mode][j]?"done":""}" data-j="${j}" aria-label="Ejercicio ${j+1}">${j+1}</button>`).join("");
+  return `<div class="ex-head"><span class="ex-num">${MODES.find(m=>m.id===mode).name} · ${i+1} de ${list.length}</span><div class="dots">${dots}</div></div>
+  <h2>${esc(ex.t)}</h2>`;
+}
+function nav(){
+  const i = idx[mode], last = DATA[mode].length-1;
+  return `<span class="spacer"></span><button class="btn plain" data-act="prev" ${i===0?"disabled":""}>← Anterior</button><button class="btn ghost" data-act="next" ${i===last?"disabled":""}>Siguiente →</button>`;
+}
+function fb(kind, title, body){ $("fb").className = "fb " + kind; $("fb").hidden = false; $("fb").innerHTML = `<strong>${title}</strong>${body}`; }
+function markSolved(){ solved[mode][idx[mode]] = true; save(); renderTabs(); document.querySelectorAll(".dot")[idx[mode]].classList.add("done"); }
+
+function render(){
+  renderTabs();
+  const ex = DATA[mode][idx[mode]], st = $("stage");
+  const desc = MODES.find(m=>m.id===mode).desc;
+  if(mode==="predecir"){
+    const nl = ex.a[0].split("\n").length;
+    st.innerHTML = head(ex) + `<p class="consigna">${desc}</p>
+      <pre class="code">${codeLines(ex.code)}</pre>
+      <div class="console"><div class="console-h">Consola · salida esperada</div>
+      <textarea id="ans" rows="${Math.max(3,nl+1)}" autocomplete="off" spellcheck="false" placeholder="Escribir la salida…" aria-label="Salida del programa"></textarea></div>
+      <div class="actions"><button class="btn" data-act="check">Comprobar</button><button class="btn plain" data-act="hint">Pista</button>${nav()}</div>
+      <div id="fb" hidden></div>`;
+  } else if(mode==="completar"){
+    const parts = ex.code.split(/⟦(\d)⟧/);
+    let html = "";
+    for(let p=0;p<parts.length;p++){
+      if(p%2===0) html += hl(parts[p]);
+      else { const w = Math.max(7, ex.b[+parts[p]][0].length + 3); html += `<input class="blank" style="width:${w}ch" data-b="${parts[p]}" autocomplete="off" spellcheck="false" aria-label="Espacio ${+parts[p]+1}">`; }
+    }
+    const lines = html.split("\n").map((l,i)=>`<span class="ln" data-n="${i+1}">${l||" "}</span>`).join("");
+    st.innerHTML = head(ex) + `<p class="consigna">${esc(ex.q)} ${desc}</p>
+      <pre class="code">${lines}</pre>
+      <div class="actions"><button class="btn" data-act="check">Comprobar</button><button class="btn plain" data-act="hint">Pista</button>${nav()}</div>
+      <div id="fb" hidden></div>`;
+  } else if(mode==="error"){
+    st.innerHTML = head(ex) + `<p class="consigna">${esc(ex.q)}</p>
+      <pre class="code lines-pick">${ex.lines.map((l,i)=>`<span class="ln" role="button" tabindex="0" data-n="${i+1}" data-i="${i}">${hl(l)||" "}</span>`).join("")}</pre>
+      <div class="actions"><button class="btn plain" data-act="reveal">Ver la respuesta</button>${nav()}</div>
+      <div id="fb" hidden></div>`;
+  } else if(mode==="armar"){
+    if(!parsonsState){
+      const tiles = ex.sol[0].concat(ex.extra).map((txt,k)=>({k,txt}));
+      for(let a=tiles.length-1;a>0;a--){ const b=Math.floor(Math.random()*(a+1)); [tiles[a],tiles[b]]=[tiles[b],tiles[a]]; }
+      parsonsState = {pool:tiles, ans:[]};
+    }
+    st.innerHTML = head(ex) + `<p class="consigna">${esc(ex.q)} Hacer clic en una línea para moverla; la sangría se agrega sola.</p>
+      <div class="parsons">
+        <div><div class="zone-h">Líneas disponibles</div><div class="zone" id="pool"></div></div>
+        <div><div class="zone-h">Código</div><div class="zone sol" id="sol"></div></div>
+      </div>
+      <div class="actions"><button class="btn" data-act="check">Comprobar</button><button class="btn plain" data-act="hint">Pista</button><button class="btn plain" data-act="shuffle">Empezar de nuevo</button>${nav()}</div>
+      <div id="fb" hidden></div>`;
+    drawParsons();
+  } else {
+    const tests = ex.tests.map(t=>`<tr><td>${esc(t[0])}</td><td>${esc(t[1])}</td></tr>`).join("");
+    st.innerHTML = head(ex) + `<p class="consigna">${esc(ex.q)}</p>
+      <ol class="steps">${ex.steps.map(s=>`<li>${s}</li>`).join("")}</ol>
+      <div class="sub">Pruebas</div>
+      <div class="tbl-wrap"><table class="tests"><thead><tr><th>Se escribe</th><th>Se tiene que ver</th></tr></thead><tbody>${tests}</tbody></table></div>
+      <div class="sub">Código para copiar en Eclipse</div>
+      <pre class="code">${codeLines(ex.base)}</pre>
+      <div class="actions"><button class="btn" data-act="copy">Copiar código</button><button class="btn ghost" data-act="done">${solved[mode][idx[mode]]?"Hecho ✓":"Marcar como hecho"}</button><button class="btn plain" data-act="sol">${showSol?"Ocultar la solución":"Ver una solución"}</button>${nav()}</div>
+      <div id="fb" hidden></div>
+      ${showSol?`<div class="sub">Una solución posible</div><pre class="code">${codeLines(ex.sol)}</pre>`:""}`;
+  }
+}
+
+function indentOf(lines){
+  let lvl = 0;
+  return lines.map(t=>{ if(t.startsWith("}")) lvl=Math.max(0,lvl-1); const s="    ".repeat(lvl)+t; if(t.endsWith("{")) lvl++; return s; });
+}
+function drawParsons(){
+  const P = parsonsState;
+  $("pool").innerHTML = P.pool.length ? P.pool.map((x,j)=>`<button class="tile" data-pool="${j}">${hl(x.txt)}</button>`).join("") : `<div class="empty">No quedan líneas.</div>`;
+  const ind = indentOf(P.ans.map(x=>x.txt));
+  $("sol").innerHTML = P.ans.length ? ind.map((t,j)=>`<button class="tile" data-ans="${j}">${hl(t)}</button>`).join("") : `<div class="empty">Elegir la primera línea.</div>`;
+}
+
+const normLines = s => s.split("\n").map(l=>l.trim().replace(/\s+/g," ")).filter(l=>l!=="").join("\n");
+$("stage").addEventListener("click", e=>{
+  const dot = e.target.closest(".dot");
+  if(dot){ idx[mode] = +dot.dataset.j; parsonsState=null; showSol=false; render(); return; }
+  const tp = e.target.closest("[data-pool]"), ta = e.target.closest("[data-ans]");
+  if(tp){ parsonsState.ans.push(parsonsState.pool.splice(+tp.dataset.pool,1)[0]); drawParsons(); return; }
+  if(ta){ parsonsState.pool.push(parsonsState.ans.splice(+ta.dataset.ans,1)[0]); drawParsons(); return; }
+  const line = e.target.closest(".lines-pick .ln");
+  if(line){ pickLine(line); return; }
+  const b = e.target.closest("[data-act]"); if(!b) return;
+  const ex = DATA[mode][idx[mode]], act = b.dataset.act;
+  if(act==="prev"||act==="next"){ idx[mode] += act==="next"?1:-1; parsonsState=null; showSol=false; render(); return; }
+  if(act==="hint"){ fb("hint","Pista", esc(ex.hint)); return; }
+  if(act==="shuffle"){ parsonsState=null; render(); return; }
+  if(act==="reveal"){ const ln=document.querySelectorAll(".lines-pick .ln")[ex.bad]; ln.classList.add("ok"); fb("hint",`El error está en la línea ${ex.bad+1}`, esc(ex.ex)); return; }
+  if(act==="sol"){ showSol=!showSol; render(); return; }
+  if(act==="done"){ markSolved(); b.textContent="Hecho ✓"; return; }
+  if(act==="copy"){ copyText(ex.base); return; }
+  if(act==="check") check(ex);
+});
+$("stage").addEventListener("keydown", e=>{
+  if(e.key==="Enter" && e.target.classList.contains("blank")){ check(DATA[mode][idx[mode]]); }
+  else if(e.key==="Enter" && (e.ctrlKey||e.metaKey) && e.target.id==="ans"){ check(DATA[mode][idx[mode]]); }
+  else if((e.key==="Enter"||e.key===" ") && e.target.matches(".lines-pick .ln")){ e.preventDefault(); pickLine(e.target); }
+});
+
+function copyText(txt){
+  const ok = ()=>fb("ok","Código copiado.","Pegarlo en Eclipse, en una clase llamada Main.");
+  const fail = ()=>fb("hint","No se pudo copiar automáticamente.","Seleccionar el código con el mouse y copiarlo con Ctrl+C.");
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(ok, ()=>legacy()); }
+    else legacy();
+  }catch(e){ legacy(); }
+  function legacy(){
+    try{ const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); const r=document.execCommand("copy"); ta.remove(); r?ok():fail(); }catch(e){ fail(); }
+  }
+}
+
+function pickLine(el){
+  const ex = DATA[mode][idx[mode]], i = +el.dataset.i;
+  if(i===ex.bad){ el.classList.add("ok"); fb("ok","¡Correcto! Es la línea "+(i+1)+".", esc(ex.ex)); markSolved(); }
+  else { el.classList.add("no"); fb("no","Esa línea no es el problema.","La línea "+(i+1)+" se ejecuta sin errores. Probar con otra."); }
+}
+
+function check(ex){
+  if(mode==="predecir"){
+    const inp=$("ans"), v=normLines(inp.value);
+    if(!v){ fb("hint","Falta la respuesta","Escribir lo que imprime el programa, una línea debajo de la otra."); return; }
+    if(ex.a.some(a=>normLines(a)===v)){ fb("ok","¡Correcto!", esc(ex.ex)); markSolved(); }
+    else if(ex.a.some(a=>normLines(a).toLowerCase()===v.toLowerCase())){ fb("no","Casi.","La consola distingue mayúsculas y minúsculas. Revisar cada letra."); }
+    else if(ex.a.some(a=>normLines(a).split("\n").length!==v.split("\n").length)){ fb("no","Todavía no.","La cantidad de líneas no coincide. Revisar qué println se ejecutan y cuáles se saltean."); inp.classList.remove("shake"); void inp.offsetWidth; inp.classList.add("shake"); }
+    else { fb("no","Todavía no.","Seguir el programa línea por línea. Cuando una línea del try falla, se salta directo al catch."); inp.classList.remove("shake"); void inp.offsetWidth; inp.classList.add("shake"); }
+  } else if(mode==="completar"){
+    let all=true, empty=false;
+    document.querySelectorAll(".blank").forEach(inp=>{
+      const v=inp.value.trim(); if(!v) empty=true;
+      const ok = ex.b[+inp.dataset.b].includes(v);
+      inp.classList.toggle("ok",ok); inp.classList.toggle("no",!ok&&!!v); if(!ok) all=false;
+    });
+    if(all){ fb("ok","¡Correcto!", esc(ex.ex)); markSolved(); }
+    else fb(empty?"hint":"no", empty?"Faltan espacios por completar.":"Hay espacios incorrectos.", "Los espacios en rojo necesitan revisión. Java distingue mayúsculas de minúsculas.");
+  } else if(mode==="armar"){
+    const P=parsonsState, got=P.ans.map(x=>x.txt);
+    if(P.ans.length===0){ fb("hint","Todavía no hay líneas.","Hacer clic en las líneas disponibles para armar el código."); return; }
+    if(ex.sol.some(s=>s.length===got.length && s.every((t,j)=>t===got[j]))){ fb("ok","¡Correcto!", esc(ex.ex)); markSolved(); }
+    else {
+      const usedExtra = got.some(t=>ex.extra.includes(t));
+      fb("no","Todavía no.", usedExtra ? "Se usó una línea que sobra. Revisar cuál no corresponde." : got.length < ex.sol[0].length ? "Faltan líneas o el orden no es el correcto." : "El orden de las líneas no es el correcto.");
+    }
+  }
+}
+
+/* reinicio */
+$("resetBtn").onclick=()=>{ $("resetConfirm").hidden=false; $("resetBtn").hidden=true; };
+$("resetNo").onclick=()=>{ $("resetConfirm").hidden=true; $("resetBtn").hidden=false; };
+$("resetYes").onclick=()=>{ solved={predecir:{},completar:{},error:{},armar:{},programar:{}}; save(); $("resetConfirm").hidden=true; $("resetBtn").hidden=false; parsonsState=null; showSol=false; render(); };
+
+render();
+</script>
+
+</body></html>
